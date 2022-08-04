@@ -31,6 +31,7 @@ class NeuronalCA:
     def __init__(self, config: CN) -> None:
         # Parameters
         self.kernel_size = config.kernel_size
+        self.pad = config.pad
         self.threshold = config.threshold
         self.decay = config.decay
         self.activity_delta = config.activity_delta
