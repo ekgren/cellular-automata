@@ -69,8 +69,8 @@ class NeuronalCA(nn.Module):
 
         # Update connections
         # TODO: replace this with different weight updating method
-        self.connectome += activations_neighbors * 2 - 1
-        self.connectome = self.connectome.clamp(0, self.threshold * 2)
+        # self.connectome += activations_neighbors * 2 - 1
+        # self.connectome = self.connectome.clamp(0, self.threshold * 2)
 
         # So what is going on here?
         condition_1 = (self.connectome > self.threshold)  # What the hell is this?
