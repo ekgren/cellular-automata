@@ -73,9 +73,9 @@ class NeuronalCA(nn.Module):
         # self.connectome = self.connectome.clamp(0, self.threshold * 2)
 
         # So what is going on here?
-        condition_1 = (self.connectome > self.threshold)  # What the hell is this?
-        value_1 = (self.connectome - self.threshold).clamp(min=0)  # And what the hell is this?
-        activations_neighbors *= condition_1 * value_1
+        # condition_1 = (self.connectome > self.threshold)  # What the hell is this?
+        # value_1 = (self.connectome - self.threshold).clamp(min=0)  # And what the hell is this?
+        # activations_neighbors *= condition_1 * value_1
 
         # Randomly drop some neighboring activations
         if self.drop_p > 0:
