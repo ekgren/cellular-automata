@@ -51,9 +51,6 @@ class NeuronalCA(nn.Module):
         self.connectome *= (torch.rand(connectome_shape, device=self.device) < config.connectome_init_p)
 
     def step(self) -> None:
-        # Decay activations over time.
-        self.activations = (self.activations - self.decay).clamp(min=0)
-
         # Decay integrations over time
         # Need to figure out how to decay integrations over time
         # integration = (integration - decay).clamp(min=0)
@@ -69,17 +66,17 @@ class NeuronalCA(nn.Module):
 
         # Update connections
         # TODO: replace this with different weight updating method
-        # self.connectome += activations_neighbors * 2 - 1
-        # self.connectome = self.connectome.clamp(0, self.threshold * 2)
+        self.connectome += activations_neighbors * 2 - 1
+        self.connectome = self.connectome.clamp(0, self.threshold * 2)
 
         # So what is going on here?
-        # condition_1 = (self.connectome > self.threshold)  # What the hell is this?
-        # value_1 = (self.connectome - self.threshold).clamp(min=0)  # And what the hell is this?
-        # activations_neighbors *= condition_1 * value_1
+        condition_1 = (self.connectome > self.threshold)  # What the hell is this?
+        value_1 = (self.connectome - self.threshold).clamp(min=0)  # And what the hell is this?
+        activations_neighbors *= condition_1 * value_1
 
         # Randomly drop some neighboring activations
         if self.drop_p > 0:
-            activations_neighbors *= (torch.rand(self.connectome.shape, device=self.activations.device) < self.drop_p)
+            activations_neighbors *= (torch.rand(self.connectome.shape, device=self.connectome.device) < self.drop_p)
 
         # Sum neighboring activations.
         activations_neighbors = activations_neighbors.sum(dim=-1)  # This is the surrounding activation
@@ -90,8 +87,12 @@ class NeuronalCA(nn.Module):
 
         # If integration value over threshold set activation value to
         # threshold + activity_delta and reset integration value.
-        self.activations[self.integrations > self.threshold] = self.threshold + self.activity_delta
-        self.integrations[self.integrations > self.threshold] = 0
+        integration_over_threshold = self.integrations > self.threshold
+        self.activations[integration_over_threshold] = self.threshold + self.activity_delta
+        self.integrations[integration_over_threshold] = 0
+
+        # Decay activations over time.
+        self.activations = (self.activations - self.decay).clamp(min=0)
 
 
 # -----------------------------------------------------------------------------
