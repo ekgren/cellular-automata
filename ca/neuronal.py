@@ -48,7 +48,7 @@ class NeuronalCA(nn.Module):
 
         connectome_shape = (1, 1, config.board_size, config.board_size, config.kernel_size ** 2)
         self.connectome = config.threshold * torch.ones(connectome_shape, dtype=torch.int32, device=self.device)
-        self.connectome *= (torch.rand(connectome_shape) < config.connectome_init_p)
+        self.connectome *= (torch.rand(connectome_shape, device=self.device) < config.connectome_init_p)
 
     def step(self):
         # Decay activations over time.
