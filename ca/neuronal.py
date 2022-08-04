@@ -50,7 +50,7 @@ class NeuronalCA(nn.Module):
         self.connectome = config.threshold * torch.ones(connectome_shape, dtype=torch.int32, device=self.device)
         self.connectome *= (torch.rand(connectome_shape, device=self.device) < config.connectome_init_p)
 
-    def step(self):
+    def step(self) -> None:
         # Decay activations over time.
         self.activations = (self.activations - self.decay).clamp(min=0)
 
@@ -73,12 +73,13 @@ class NeuronalCA(nn.Module):
         self.connectome = self.connectome.clamp(0, self.threshold * 2)
 
         # So what is going on here?
-        condition_1 = (self.connectome > self.threshold)  # What the hell is this?
-        value_1 = 1  # (mask - threshold).clamp(min=0) # And what the hell is this?
-        activations_neighbors *= condition_1 * value_1
+        # condition_1 = (self.connectome > self.threshold)  # What the hell is this?
+        # value_1 = 1  # (mask - threshold).clamp(min=0) # And what the hell is this?
+        # activations_neighbors *= condition_1 * value_1
 
         # Randomly drop some neighboring activations
-        activations_neighbors *= (torch.rand(self.connectome.shape, device=self.activations.device) < self.drop_p)
+        if self.drop_p > 0:
+            activations_neighbors *= (torch.rand(self.connectome.shape, device=self.activations.device) < self.drop_p)
 
         # Sum neighboring activations.
         activations_neighbors = activations_neighbors.sum(dim=-1)  # This is the surrounding activation
