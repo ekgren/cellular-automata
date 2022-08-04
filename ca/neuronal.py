@@ -32,7 +32,6 @@ class NeuronalCA:
         # Parameters
         self.kernel_size = config.kernel_size
         self.pad = config.pad
-        self.stride = config.stride
         self.threshold = config.threshold
         self.decay = config.decay
         self.activity_delta = config.activity_delta
@@ -58,7 +57,7 @@ class NeuronalCA:
         # integration = (integration - decay).clamp(min=0)
 
         # Get neighbors and apply kernel
-        activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad, self.stride)
+        activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad)
         # TODO: replace kernel with just zero out middle element of activation neighbors
         # TODO: self.kernel[(self.kernel_size ** 2) // 2] = 0 but for activation neighbors
         activations_neighbors *= self.kernel
