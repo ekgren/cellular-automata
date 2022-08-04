@@ -31,6 +31,7 @@ class NeuronalCA(nn.Module):
     def __init__(self, config: CN) -> None:
         super().__init__()
         # Parameters
+        self.device = config.device
         self.kernel_size = config.kernel_size
         self.pad = config.pad
         self.threshold = config.threshold
@@ -39,14 +40,14 @@ class NeuronalCA(nn.Module):
         self.drop_p = config.drop_p
 
         # Initialize model
-        self.activations = nn.Parameter(torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32))
-        self.integrations = nn.Parameter(torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32))
+        self.activations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32, device=self.device)
+        self.integrations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32, device=self.device)
 
-        self.kernel = nn.Parameter(torch.ones(config.kernel_size ** 2, dtype=torch.int32))
+        self.kernel = torch.ones(config.kernel_size ** 2, dtype=torch.int32, device=self.device)
         self.kernel[(config.kernel_size ** 2) // 2] = 0
 
         connectome_shape = (1, 1, config.board_size, config.board_size, config.kernel_size ** 2)
-        self.connectome = nn.Parameter(config.threshold * torch.ones(connectome_shape, dtype=torch.int32))
+        self.connectome = config.threshold * torch.ones(connectome_shape, dtype=torch.int32, device=self.device)
         self.connectome *= (torch.rand(connectome_shape) < config.connectome_init_p)
 
     def step(self):
