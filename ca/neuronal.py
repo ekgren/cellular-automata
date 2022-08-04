@@ -39,14 +39,14 @@ class NeuronalCA(nn.Module):
         self.drop_p = config.drop_p
 
         # Initialize model
-        self.activations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32)
-        self.integrations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32)
+        self.activations = nn.Parameter(torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32))
+        self.integrations = nn.Parameter(torch.zeros([1, 1, config.board_size, config.board_size], dtype=torch.int32))
 
-        self.kernel = torch.ones(config.kernel_size ** 2, dtype=torch.int32)
+        self.kernel = nn.Parameter(torch.ones(config.kernel_size ** 2, dtype=torch.int32))
         self.kernel[(config.kernel_size ** 2) // 2] = 0
 
         connectome_shape = (1, 1, config.board_size, config.board_size, config.kernel_size ** 2)
-        self.connectome = config.threshold * torch.ones(connectome_shape, dtype=torch.int32)
+        self.connectome = nn.Parameter(config.threshold * torch.ones(connectome_shape, dtype=torch.int32))
         self.connectome *= (torch.rand(connectome_shape) < config.connectome_init_p)
 
     def step(self):
