@@ -32,6 +32,7 @@ class NeuronalCA:
         # Parameters
         self.kernel_size = config.kernel_size
         self.pad = config.pad
+        self.stride = config.stride
         self.threshold = config.threshold
         self.decay = config.decay
         self.activity_delta = config.activity_delta
