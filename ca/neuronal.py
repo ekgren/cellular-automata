@@ -19,7 +19,7 @@ def unfold(input: torch.Tensor, kernel_size: int = 3, pad: int = 1, stride: int 
     return input
 
 
-class NeuronalCA:
+class NeuronalCA(nn.Module):
     """ Neuronal Cellular Automata model. """
 
     @staticmethod
@@ -29,6 +29,7 @@ class NeuronalCA:
         return C
 
     def __init__(self, config: CN) -> None:
+        super().__init__()
         # Parameters
         self.kernel_size = config.kernel_size
         self.pad = config.pad
