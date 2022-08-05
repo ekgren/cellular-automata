@@ -35,6 +35,7 @@ class NeuronalCA:
         self.threshold = config.threshold
         self.decay = config.decay
         self.activity_delta = config.activity_delta
+        self.activation_decay_p = config.activation_decay_p
         self.integration_decay_p = config.integration_decay_p
         self.drop_p = config.drop_p
 
