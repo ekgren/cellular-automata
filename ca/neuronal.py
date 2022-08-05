@@ -106,7 +106,7 @@ class NeuronalCA:
 
         # Sum neighboring activations.
         # This value is between 0 and kernel_size ** 2 - 1
-        activations_neighbors *= (self.connectome >= self.threshold) * (self.connectome + 1 - self.threshold) // 2
+        activations_neighbors *= (self.connectome >= self.threshold) * (self.connectome + 1 - self.threshold)
         activations_neighbors = activations_neighbors.sum(dim=-1)
 
         # Add sum of activations to integration if activation < 1.
