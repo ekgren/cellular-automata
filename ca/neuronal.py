@@ -1,8 +1,6 @@
-import os
-import sys
+import random
 
 import torch
-from torch import nn
 import torch.nn.functional as F
 
 from ca.runner import Runner
@@ -57,8 +55,8 @@ class NeuronalCA:
         self.activations = (self.activations - self.decay).clamp(min=0)
 
         # Decay integrations over time
-        # Need to figure out how to decay integrations over time
-        # integration = (integration - decay).clamp(min=0)
+        if random.random() > 0.5:
+            self.integrations = (self.integrations - self.decay).clamp(min=0)
 
         # Get neighbors and apply kernel
         activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad)
@@ -76,16 +74,21 @@ class NeuronalCA:
         # to occur immediately after an output spike.
         # https://en.wikipedia.org/wiki/Spike-timing-dependent_plasticity
         if self.stdp:
-            # Long term potentiation
-            # Neighbor is active and target integration is 0 < target integration < threshold
             activations_expanded = self.activations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2)
             integrations_expanded = self.integrations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2)
-            neighbors_over_threshold_and_integrations = neighbors_over_threshold & (integrations_expanded < self.threshold) & (integrations_expanded > 0)
+
+            # Long term potentiation
+            # Neighbor is active and target integration is 0 < target integration < threshold
+            neighbors_over_threshold_and_integrations = neighbors_over_threshold & \
+                                                        (integrations_expanded < self.threshold) & \
+                                                        (integrations_expanded > 0)
             self.connectome[neighbors_over_threshold_and_integrations] += self.activity_delta
 
             # Long term depression
             # Neighbor is active and target activation is 0 < target activation < threshold
-            neighbors_over_threshold_and_activations = neighbors_over_threshold & (activations_expanded < self.threshold) & (activations_expanded > 0)
+            neighbors_over_threshold_and_activations = neighbors_over_threshold & \
+                                                       (activations_expanded < self.threshold) & \
+                                                       (activations_expanded > 0)
             self.connectome[neighbors_over_threshold_and_activations] -= self.activity_delta
 
             # Limit range of connectome values
