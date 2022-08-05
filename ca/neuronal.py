@@ -48,7 +48,7 @@ class NeuronalCA:
 
         connectome_shape = (1, 1, config.board_size, config.board_size, config.kernel_size ** 2)
         connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
-        self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device)
+        self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device) * self.threshold
         self.connectome[connectome_init] = 0
 
     def step(self) -> None:
@@ -68,15 +68,25 @@ class NeuronalCA:
         activations_neighbors[neighbors_over_threshold] = 1
         activations_neighbors[~neighbors_over_threshold] = 0
 
-        # Update connections
-        # TODO: replace this with different weight updating method
-        # self.connectome += activations_neighbors * 2 - 1
-        # self.connectome = self.connectome.clamp(0, self.threshold * 2)
+        # Update connectome with Spike Timing Dependent Plasticity (STDP).
+        # Under the STDP process, if an input spike to a neuron tends, on average,
+        # to occur immediately before that neuron's output spike, then that particular
+        # input is made somewhat stronger. If an input spike tends, on average,
+        # to occur immediately after an output spike.
+        # https://en.wikipedia.org/wiki/Spike-timing-dependent_plasticity
+        if self.stdp:
+            # Long term potentiation
+            # Neighbor is active and target integration is 0 < target integration < threshold
+            neighbors_over_threshold_and_integrations = neighbors_over_threshold & (self.integrations < self.threshold)
+            self.connectome[neighbors_over_threshold_and_integrations] += self.activity_delta
 
-        # So what is going on here?
-        # condition_1 = (self.connectome > self.threshold)  # What the hell is this?
-        # value_1 = (self.connectome - self.threshold).clamp(min=0)  # And what the hell is this?
-        # activations_neighbors *= condition_1 * value_1
+            # Long term depression
+            # Neighbor is active and target activation is 0 < target activation < threshold
+            neighbors_over_threshold_and_activations = neighbors_over_threshold & (self.activations < self.threshold)
+            self.connectome[neighbors_over_threshold_and_activations] -= self.activity_delta
+
+            # Limit range of connectome values
+            self.connectome.clamp_(min=0, max=self.threshold * 2)
 
         # Randomly drop some neighboring activations
         if self.drop_p > 0:
