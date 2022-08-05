@@ -35,6 +35,7 @@ class NeuronalCA:
         self.threshold = config.threshold
         self.decay = config.decay
         self.activity_delta = config.activity_delta
+        self.integration_decay_p = config.integration_decay_p
         self.drop_p = config.drop_p
 
         # Initialize model
@@ -46,17 +47,20 @@ class NeuronalCA:
         self.kernel[(self.kernel_size ** 2) // 2] = 0
 
         connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
-        connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
+        self.connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
         self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device) * self.threshold
-        self.connectome[connectome_init] = 0
+        self.connectome[self.connectome_init] = 0
 
     def step(self) -> None:
         # Decay activations over time.
         self.activations = (self.activations - self.decay).clamp(min=0)
 
         # Decay integrations over time
-        if random.random() > 0.5:
+        if random.random() < self.integration_decay_p:
             self.integrations = (self.integrations - self.decay).clamp(min=0)
+
+        # Keep connectome initialized to 0.
+        self.connectome[self.connectome_init] = 0
 
         # Get neighbors and apply kernel
         activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad)
