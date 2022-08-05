@@ -32,7 +32,7 @@ class NeuronalCA:
         # Parameters
         self.device = config.device
         self.stdp = config.stdp
-        self.kernel_size = config.kernel_size ** 2
+        self.kernel_size = config.kernel_size
         self.pad = config.pad
         self.threshold = config.threshold
         self.decay = config.decay
@@ -44,10 +44,10 @@ class NeuronalCA:
         self.activations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=dtype, device=self.device)
         self.integrations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=dtype, device=self.device)
 
-        self.kernel = torch.ones(self.kernel_size, dtype=dtype, device=self.device)
-        self.kernel[self.kernel_size // 2] = 0
+        self.kernel = torch.ones(self.kernel_size ** 2, dtype=dtype, device=self.device)
+        self.kernel[(self.kernel_size ** 2) // 2] = 0
 
-        connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size)
+        connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
         connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
         self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device) * self.threshold
         self.connectome[connectome_init] = 0
@@ -61,8 +61,8 @@ class NeuronalCA:
         # integration = (integration - decay).clamp(min=0)
 
         # Get neighbors and apply kernel
-        activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad)
-        activations_neighbors[:, :, :, :, self.kernel_size // 2] = 0
+        activations_neighbors = unfold(self.activations.clone(), self.kernel_size ** 2, self.pad)
+        activations_neighbors[:, :, :, :, (self.kernel_size ** 2) // 2] = 0
 
         # Check for active neighboring neurons
         neighbors_over_threshold = activations_neighbors >= self.threshold
@@ -79,13 +79,13 @@ class NeuronalCA:
             # Long term potentiation
             # Neighbor is active and target integration is 0 < target integration < threshold
             neighbors_over_threshold_and_integrations = neighbors_over_threshold & \
-                                            (self.integrations.repeat(1, 1, 1, 1, self.kernel_size) < self.threshold)
+                                        (self.integrations.repeat(1, 1, 1, 1, self.kernel_size ** 2) < self.threshold)
             self.connectome[neighbors_over_threshold_and_integrations] += self.activity_delta
 
             # Long term depression
             # Neighbor is active and target activation is 0 < target activation < threshold
             neighbors_over_threshold_and_activations = neighbors_over_threshold & \
-                                           (self.activations.repeat(1, 1, 1, 1, self.kernel_size) < self.threshold)
+                                        (self.activations.repeat(1, 1, 1, 1, self.kernel_size ** 2) < self.threshold)
             self.connectome[neighbors_over_threshold_and_activations] -= self.activity_delta
 
             # Limit range of connectome values
