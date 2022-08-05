@@ -47,7 +47,7 @@ class NeuronalCA:
         self.kernel[(config.kernel_size ** 2) // 2] = 0
 
         connectome_shape = (1, 1, config.board_size, config.board_size, config.kernel_size ** 2)
-        connectome_init = (torch.rand(connectome_shape, device=self.device) < config.connectome_init_p)
+        connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
         self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device)
         self.connectome[connectome_init] = 0
 
