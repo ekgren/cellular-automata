@@ -31,7 +31,7 @@ class NeuronalCA:
     def __init__(self, config: CN) -> None:
         # Parameters
         self.device = config.device
-        self.stdp = config.stpd
+        self.stdp = config.stdp
         self.kernel_size = config.kernel_size
         self.pad = config.pad
         self.threshold = config.threshold
