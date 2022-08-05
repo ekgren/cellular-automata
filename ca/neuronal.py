@@ -53,7 +53,8 @@ class NeuronalCA:
 
     def step(self) -> None:
         # Decay activations over time.
-        self.activations = (self.activations - self.decay).clamp(min=0)
+        if random.random() < self.activation_decay_p:
+            self.activations = (self.activations - self.decay).clamp(min=0)
 
         # Decay integrations over time
         if random.random() < self.integration_decay_p:
@@ -100,7 +101,7 @@ class NeuronalCA:
 
         # Randomly drop some neighboring activations
         if self.drop_p > 0:
-            activations_neighbors *= (torch.rand(self.connectome.shape, device=self.connectome.device) < self.drop_p)
+            activations_neighbors *= (torch.rand(self.connectome.shape, device=self.connectome.device) > self.drop_p)
 
         # Sum neighboring activations.
         # This value is between 0 and kernel_size ** 2 - 1
@@ -132,32 +133,30 @@ if __name__ == '__main__':
 
         # model
         C.model = NeuronalCA.get_default_config()
+        C.model.stdp = True
         C.model.board_size = 256
         C.model.channels = 3
         C.model.kernel_size = 21
         C.model.pad = 10
-        C.model.mod = 10 + 1
         C.model.threshold = 10
         C.model.decay = 1
         C.model.activity_delta = 1
-        C.model.drop_p = 0.8
-        C.model.connectome_init_p = 0.05
-
-        # runner
-        C.runner = Runner.get_default_config()
+        C.model.drop_p = 0.0
+        C.model.activation_decay_p = 1.0
+        C.model.integration_decay_p = 0.0
+        C.model.connectome_init_p = .15
+        C.model.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         # video
         C.video = CN()
         C.video.scale = 2.
         C.video.fps = 30
-        C.video.show_nth_frame = 1
+        C.video.show_nth_frame = 2
         C.video.duration = 5  # seconds
-        C.size_v = (int(C.video.scale * C.model.board_size),) * 2
+        C.video.size_v = (int(C.video.scale * C.model.board_size),) * 2
         C.video.iterations = C.video.fps * C.video.duration * C.video.show_nth_frame
 
         return C
-
-# -----------------------------------------------------------------------------
 
     # get default config
     config = get_config()
@@ -166,25 +165,4 @@ if __name__ == '__main__':
     set_seed(config.system.seed)
 
     model = NeuronalCA(config.model)
-
-    # construct the trainer object
-    runner = Runner(config.trainer, model)
-
-    # iteration callback
-    def batch_end_callback(runner: Runner):
-
-        if runner.iter_num % 10 == 0:
-            print(f"iter_dt {runner.iter_dt * 1000:.2f}ms; iter {runner.iter_num}: train loss {runner.loss.item():.5f}")
-
-        if runner.iter_num % 200 == 0:
-            pass
-            # evaluate both the train and test score
-            # model.eval()
-            # revert model to training mode
-            # model.train()
-
-    runner.set_callback('on_batch_end', batch_end_callback)
-
-    # run the optimization
-    runner.run()
 
