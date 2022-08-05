@@ -65,7 +65,7 @@ class NeuronalCA:
         # Check for active neighboring neurons
         neighbors_over_threshold = activations_neighbors > self.threshold
         activations_neighbors[neighbors_over_threshold] = 1
-        activations_neighbors[not neighbors_over_threshold] = 0
+        activations_neighbors[~neighbors_over_threshold] = 0
 
         # Update connections
         # TODO: replace this with different weight updating method
