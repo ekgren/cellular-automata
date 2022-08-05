@@ -78,8 +78,6 @@ class NeuronalCA:
         if self.stdp:
             # Long term potentiation
             # Neighbor is active and target integration is 0 < target integration < threshold
-            print(neighbors_over_threshold.shape)
-            print(self.integrations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2).shape)
             neighbors_over_threshold_and_integrations = neighbors_over_threshold & \
                                         (self.integrations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2) < self.threshold)
             self.connectome[neighbors_over_threshold_and_integrations] += self.activity_delta
