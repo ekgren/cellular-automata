@@ -47,8 +47,9 @@ class NeuronalCA:
         self.kernel[(config.kernel_size ** 2) // 2] = 0
 
         connectome_shape = (1, 1, config.board_size, config.board_size, config.kernel_size ** 2)
-        self.connectome = config.threshold * torch.ones(connectome_shape, dtype=dtype, device=self.device)
-        self.connectome[(torch.rand(connectome_shape, device=self.device) < config.connectome_init_p)] = 0
+        connectome_init = (torch.rand(connectome_shape, device=self.device) < config.connectome_init_p)
+        self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device)
+        self.connectome[connectome_init] = 0
 
     def step(self) -> None:
         # Decay activations over time.
@@ -83,6 +84,7 @@ class NeuronalCA:
 
         # Sum neighboring activations.
         # This value is between 0 and kernel_size ** 2 - 1
+        activations_neighbors *= self.connectome
         activations_neighbors = activations_neighbors.sum(dim=-1)
 
         # Add sum of activations to integration if activation < 1.
