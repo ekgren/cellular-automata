@@ -78,14 +78,14 @@ class NeuronalCA:
         if self.stdp:
             # Long term potentiation
             # Neighbor is active and target integration is 0 < target integration < threshold
-            neighbors_over_threshold_and_integrations = neighbors_over_threshold & \
-                                        (0 < self.integrations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2) < self.threshold)
+            activations_expanded = self.activations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2)
+            integrations_expanded = self.integrations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2)
+            neighbors_over_threshold_and_integrations = neighbors_over_threshold & (integrations_expanded < self.threshold) & (integrations_expanded > 0)
             self.connectome[neighbors_over_threshold_and_integrations] += self.activity_delta
 
             # Long term depression
             # Neighbor is active and target activation is 0 < target activation < threshold
-            neighbors_over_threshold_and_activations = neighbors_over_threshold & \
-                                        (0 < self.activations.unsqueeze(4).repeat(1, 1, 1, 1, self.kernel_size ** 2) < self.threshold)
+            neighbors_over_threshold_and_activations = neighbors_over_threshold & (activations_expanded < self.threshold) & (activations_expanded > 0)
             self.connectome[neighbors_over_threshold_and_activations] -= self.activity_delta
 
             # Limit range of connectome values
