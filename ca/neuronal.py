@@ -63,7 +63,7 @@ class NeuronalCA:
         activations_neighbors[:, :, :, :, (self.kernel_size ** 2) // 2] = 0
 
         # Check for active neighboring neurons
-        neighbors_over_threshold = activations_neighbors > self.threshold
+        neighbors_over_threshold = activations_neighbors >= self.threshold
         activations_neighbors[neighbors_over_threshold] = 1
         activations_neighbors[~neighbors_over_threshold] = 0
 
