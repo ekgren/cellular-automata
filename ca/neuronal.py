@@ -61,7 +61,7 @@ class NeuronalCA:
         # integration = (integration - decay).clamp(min=0)
 
         # Get neighbors and apply kernel
-        activations_neighbors = unfold(self.activations.clone(), self.kernel_size ** 2, self.pad)
+        activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad)
         activations_neighbors[:, :, :, :, (self.kernel_size ** 2) // 2] = 0
 
         # Check for active neighboring neurons
