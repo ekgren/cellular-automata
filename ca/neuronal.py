@@ -34,7 +34,8 @@ class NeuronalCA:
         self.activation_threshold = config.activation_threshold
         self.integration_threshold = config.integration_threshold
         self.threshold = config.threshold
-        self.decay = config.decay
+        self.activation_decay = config.activation_decay
+        self.integration_decay = config.integration_decay
         self.activity_delta = config.activity_delta
         self.activation_decay_p = config.activation_decay_p
         self.integration_decay_p = config.integration_decay_p
@@ -78,7 +79,7 @@ class NeuronalCA:
     def decay_activations(self) -> None:
         # Decay activations over time.
         if random.random() < self.activation_decay_p:
-            self.activations = (self.activations - self.decay).clamp(min=0)
+            self.activations = (self.activations - self.activation_decay).clamp(min=0)
 
 
 class NeuronalSTDPCA:
