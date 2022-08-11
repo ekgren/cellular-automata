@@ -31,6 +31,8 @@ class NeuronalCA:
         self.device = config.device
         self.kernel_size = config.kernel_size
         self.pad = config.pad
+        self.activation_threshold = config.activation_threshold
+        self.integration_threshold = config.integration_threshold
         self.threshold = config.threshold
         self.decay = config.decay
         self.activity_delta = config.activity_delta
@@ -50,7 +52,7 @@ class NeuronalCA:
 
     def step(self) -> None:
         neighbor_activations = self.get_neighbor_activations() * self.connectome
-        neighbor_activations_over_threshold = neighbor_activations > self.fire_threshold
+        neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
 
         # Sum neighboring activations. This value is between 0 and kernel_size ** 2 - 1
         neighbor_activations_sum = neighbor_activations_over_threshold.sum(dim=-1)
@@ -61,7 +63,7 @@ class NeuronalCA:
 
         # If integration value over threshold set activation value to
         # threshold + activity_delta and reset integration value.
-        integration_over_threshold = self.integrations > self.threshold
+        integration_over_threshold = self.integrations > self.integration_threshold
         self.activations[integration_over_threshold] = self.threshold + self.activity_delta
         self.integrations[integration_over_threshold] = 0
 
