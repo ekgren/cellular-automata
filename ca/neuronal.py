@@ -53,6 +53,7 @@ class NeuronalCA:
 
     def step(self) -> None:
         self.decay_activations()
+        self.decay_integrations()
 
         neighbor_activations = self.get_neighbor_activations() * self.connectome
         neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
@@ -80,6 +81,11 @@ class NeuronalCA:
         # Decay activations over time.
         if random.random() < self.activation_decay_p:
             self.activations = (self.activations - self.activation_decay).clamp(min=0)
+
+    def decay_integrations(self) -> None:
+        # Decay integrations over time.
+        if random.random() < self.integration_decay_p:
+            self.integrations = (self.integrations - self.integration_decay).clamp(min=0)
 
 
 class NeuronalSTDPCA:
