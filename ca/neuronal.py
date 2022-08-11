@@ -52,6 +52,8 @@ class NeuronalCA:
         self.connectome[self.connectome_init] = 0
 
     def step(self) -> None:
+        self.decay_activations()
+
         neighbor_activations = self.get_neighbor_activations() * self.connectome
         neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
 
@@ -67,8 +69,6 @@ class NeuronalCA:
         integration_over_threshold = self.integrations > self.integration_threshold
         self.activations[integration_over_threshold] = self.activation_threshold + self.activity_delta
         self.integrations[integration_over_threshold] = 0
-
-        self.decay_activations()
 
     def get_neighbor_activations(self) -> torch.Tensor:
         # Returns a tensor of shape (1, 1, board_size, board_size, kernel_size ** 2)
