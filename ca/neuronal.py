@@ -33,7 +33,7 @@ class NeuronalCA:
         self.pad = config.pad
         self.activation_threshold = config.activation_threshold
         self.integration_threshold = config.integration_threshold
-        self.threshold = config.threshold
+        #self.threshold = config.threshold
         self.activation_decay = config.activation_decay
         self.integration_decay = config.integration_decay
         self.activity_delta = config.activity_delta
@@ -65,7 +65,7 @@ class NeuronalCA:
         # If integration value over threshold set activation value to
         # threshold + activity_delta and reset integration value.
         integration_over_threshold = self.integrations > self.integration_threshold
-        self.activations[integration_over_threshold] = self.threshold + self.activity_delta
+        self.activations[integration_over_threshold] = self.activation_threshold + self.activity_delta
         self.integrations[integration_over_threshold] = 0
 
         self.decay_activations()
