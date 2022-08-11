@@ -67,11 +67,18 @@ class NeuronalCA:
         self.activations[integration_over_threshold] = self.threshold + self.activity_delta
         self.integrations[integration_over_threshold] = 0
 
+        self.decay_activations()
+
     def get_neighbor_activations(self) -> torch.Tensor:
         # Returns a tensor of shape (1, 1, board_size, board_size, kernel_size ** 2)
         neighbor_activations = unfold(self.activations.clone(), self.kernel_size, self.pad)
         neighbor_activations[:, :, :, :, (self.kernel_size ** 2) // 2] = 0
         return neighbor_activations
+
+    def decay_activations(self) -> None:
+        # Decay activations over time.
+        if random.random() < self.activation_decay_p:
+            self.activations = (self.activations - self.decay).clamp(min=0)
 
 
 class NeuronalSTDPCA:
