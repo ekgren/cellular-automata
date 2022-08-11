@@ -29,6 +29,61 @@ class NeuronalCA:
     def __init__(self, config: CN) -> None:
         # Parameters
         self.device = config.device
+        self.kernel_size = config.kernel_size
+        self.pad = config.pad
+        self.threshold = config.threshold
+        self.decay = config.decay
+        self.activity_delta = config.activity_delta
+        self.activation_decay_p = config.activation_decay_p
+        self.integration_decay_p = config.integration_decay_p
+        self.drop_p = config.drop_p
+
+        # Initialize model
+        dtype = torch.int32
+        self.activations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=dtype, device=self.device)
+        self.integrations = torch.zeros([1, 1, config.board_size, config.board_size], dtype=dtype, device=self.device)
+
+        connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
+        self.connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
+        self.connectome = torch.ones(connectome_shape, dtype=dtype, device=self.device)
+        self.connectome[self.connectome_init] = 0
+
+    def step(self) -> None:
+        neighbor_activations = self.get_neighbor_activations() * self.connectome
+        neighbor_activations_over_threshold = neighbor_activations > self.fire_threshold
+
+        # Sum neighboring activations. This value is between 0 and kernel_size ** 2 - 1
+        neighbor_activations_sum = neighbor_activations_over_threshold.sum(dim=-1)
+
+        # Add sum of activations to integration if activation < 1.
+        neuron_not_active_or_refractory = (self.activations < 1)
+        self.integrations += neighbor_activations_sum * neuron_not_active_or_refractory
+
+        # If integration value over threshold set activation value to
+        # threshold + activity_delta and reset integration value.
+        integration_over_threshold = self.integrations > self.threshold
+        self.activations[integration_over_threshold] = self.threshold + self.activity_delta
+        self.integrations[integration_over_threshold] = 0
+
+    def get_neighbor_activations(self) -> torch.Tensor:
+        # Returns a tensor of shape (1, 1, board_size, board_size, kernel_size ** 2)
+        neighbor_activations = unfold(self.activations.clone(), self.kernel_size, self.pad)
+        neighbor_activations[:, :, :, :, (self.kernel_size ** 2) // 2] = 0
+        return neighbor_activations
+
+
+class NeuronalSTDPCA:
+    """ Neuronal Cellular Automata model. """
+
+    @staticmethod
+    def get_default_config():
+        C = CN()
+        C.model_type = 'NeuronalCA'
+        return C
+
+    def __init__(self, config: CN) -> None:
+        # Parameters
+        self.device = config.device
         self.stdp = config.stdp
         self.kernel_size = config.kernel_size
         self.pad = config.pad
@@ -62,7 +117,8 @@ class NeuronalCA:
             self.integrations = (self.integrations - self.decay).clamp(min=0)
 
         # Keep connectome initialized to 0.
-        self.connectome[self.connectome_init] = 0
+        # This one is just a test, not sure how it effects.
+        # self.connectome[self.connectome_init] = 0
 
         # Get neighbors and apply kernel
         activations_neighbors = unfold(self.activations.clone(), self.kernel_size, self.pad)
