@@ -132,7 +132,7 @@ class NeuronalLearningCA(nn.Module):
             ("c_fc", nn.Linear((self.kernel_size ** 2) * 2, (self.kernel_size ** 2) * 4)),
             ("gelu", QuickGELU()),
             ("c_proj", nn.Linear((self.kernel_size ** 2) * 4, (self.kernel_size ** 2) * 2)),
-            ('dropout', nn.Dropout(config.resid_pdrop)),
+            ('dropout', nn.Dropout(0.1)),
         ]))
         self.ln = nn.LayerNorm((self.kernel_size ** 2) * 2)
         self.loss = torch.nn.BCEWithLogitsLoss()
