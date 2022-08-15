@@ -146,7 +146,7 @@ class NeuronalLearningCA(nn.Module):
         output, neuron_weights = x.chunk(2, dim=-1)
         self.neuron_weights = neuron_weights.detach()
 
-        neighbor_activations = self.get_neighbor_activations() * self.connectome
+        neighbor_activations = self.get_neighbor_activations() * torch.tanh(self.connectome)
         target = (neighbor_activations > self.activation_threshold).to(self.neuron_weights.dtype)
         loss = self.loss(output, target)
 
@@ -160,7 +160,7 @@ class NeuronalLearningCA(nn.Module):
         self.decay_activations()
         self.decay_integrations()
 
-        neighbor_activations = self.get_neighbor_activations() * (self.connectome > 0) * self.connectome
+        neighbor_activations = self.get_neighbor_activations() * torch.tanh(self.connectome)
         neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
 
         # Sum neighboring activations. This value is between 0 and kernel_size ** 2 - 1
