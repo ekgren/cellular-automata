@@ -152,6 +152,7 @@ class NeuronalLearningCA(nn.Module):
 
         connectome_delta = 0.5 - (target - torch.sigmoid(output)).detach().abs()
         self.connectome = self.connectome + connectome_delta * 0.1
+        self.connectome[self.connectome_init] = -1.
         return loss
 
     @torch.no_grad()
