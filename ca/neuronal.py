@@ -123,7 +123,7 @@ class NeuronalLearningCA(nn.Module):
         connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
         self.connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
         self.connectome = torch.randn(connectome_shape, device=self.device)
-        self.connectome[self.connectome_init] = -100.
+        self.connectome[self.connectome_init] = 0.
 
         neuron_weights_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
         self.neuron_weights = torch.randn(neuron_weights_shape, requires_grad=False, device=self.device)
@@ -138,7 +138,7 @@ class NeuronalLearningCA(nn.Module):
         self.loss = torch.nn.BCEWithLogitsLoss()
 
     def forward(self):
-        neighbor_activations = self.get_neighbor_activations() * self.connectome
+        neighbor_activations = self.get_neighbor_activations() * torch.tanh(self.connectome)
         neighbor_activations_over_threshold = (neighbor_activations > self.activation_threshold).to(self.neuron_weights.dtype)
         x = torch.cat((neighbor_activations_over_threshold, self.neuron_weights), dim=-1)
         x = self.ln(self.mlp(x) + x)
@@ -152,7 +152,7 @@ class NeuronalLearningCA(nn.Module):
 
         connectome_delta = 0.5 - (target - torch.sigmoid(output)).detach().abs()
         self.connectome = self.connectome + connectome_delta * 0.1
-        self.connectome[self.connectome_init] = -1.
+        self.connectome[self.connectome_init] = 0.
         return loss
 
     @torch.no_grad()
