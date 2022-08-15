@@ -1,10 +1,17 @@
+from collections import OrderedDict
 import random
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 from ca.runner import Runner
 from ca.utils import set_seed, setup_logging, CfgNode as CN
+
+
+class QuickGELU(nn.Module):
+    def forward(self, x: torch.Tensor):
+        return x * torch.sigmoid(1.702 * x)
 
 
 def unfold(input: torch.Tensor, kernel_size: int = 3, pad: int = 1, stride: int = 1) -> torch.Tensor:
@@ -33,13 +40,11 @@ class NeuronalCA:
         self.pad = config.pad
         self.activation_threshold = config.activation_threshold
         self.integration_threshold = config.integration_threshold
-        #self.threshold = config.threshold
         self.activation_decay = config.activation_decay
         self.integration_decay = config.integration_decay
-        self.activity_delta = config.activity_delta
         self.activation_decay_p = config.activation_decay_p
         self.integration_decay_p = config.integration_decay_p
-        self.drop_p = config.drop_p
+        self.activity_delta = config.activity_delta
 
         # Initialize model
         dtype = torch.int32
@@ -56,6 +61,105 @@ class NeuronalCA:
         self.decay_integrations()
 
         neighbor_activations = self.get_neighbor_activations() * self.connectome
+        neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
+
+        # Sum neighboring activations. This value is between 0 and kernel_size ** 2 - 1
+        neighbor_activations_sum = neighbor_activations_over_threshold.sum(dim=-1)
+
+        # Add sum of activations to integration if activation < 1.
+        neuron_not_active_or_refractory = (self.activations < 1)
+        self.integrations += neighbor_activations_sum * neuron_not_active_or_refractory
+
+        # If integration value over threshold set activation value to
+        # threshold + activity_delta and reset integration value.
+        integration_over_threshold = self.integrations > self.integration_threshold
+        self.activations[integration_over_threshold] = self.activation_threshold + self.activity_delta
+        self.integrations[integration_over_threshold] = 0
+
+    def get_neighbor_activations(self) -> torch.Tensor:
+        # Returns a tensor of shape (1, 1, board_size, board_size, kernel_size ** 2)
+        neighbor_activations = unfold(self.activations.clone(), self.kernel_size, self.pad)
+        neighbor_activations[:, :, :, :, (self.kernel_size ** 2) // 2] = 0
+        return neighbor_activations
+
+    def decay_activations(self) -> None:
+        # Decay activations over time.
+        if random.random() < self.activation_decay_p:
+            self.activations = (self.activations - self.activation_decay).clamp(min=0)
+
+    def decay_integrations(self) -> None:
+        # Decay integrations over time.
+        if random.random() < self.integration_decay_p:
+            self.integrations = (self.integrations - self.integration_decay).clamp(min=0)
+
+
+class NeuronalLearningCA(nn.Module):
+    """ Neuronal Cellular Automata model. """
+
+    @staticmethod
+    def get_default_config():
+        C = CN()
+        C.model_type = 'NeuronalCA'
+        return C
+
+    def __init__(self, config: CN) -> None:
+        super().__init__()
+        # Parameters
+        self.device = config.device
+        self.kernel_size = config.kernel_size
+        self.pad = config.pad
+        self.activation_threshold = config.activation_threshold
+        self.integration_threshold = config.integration_threshold
+        self.activation_decay = config.activation_decay
+        self.integration_decay = config.integration_decay
+        self.activation_decay_p = config.activation_decay_p
+        self.integration_decay_p = config.integration_decay_p
+        self.activity_delta = config.activity_delta
+
+        # Initialize model
+        self.activations = torch.zeros([1, 1, config.board_size, config.board_size], device=self.device)
+        self.integrations = torch.zeros([1, 1, config.board_size, config.board_size], device=self.device)
+
+        connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
+        self.connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
+        self.connectome = torch.randn(connectome_shape, device=self.device)
+        self.connectome[self.connectome_init] = -1.
+
+        neuron_weights_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
+        self.neuron_weights = torch.randn(neuron_weights_shape, requires_grad=False, device=self.device)
+
+        self.mlp = nn.Sequential(OrderedDict([
+            ("c_fc", nn.Linear((self.kernel_size ** 2) * 2, (self.kernel_size ** 2) * 4)),
+            ("gelu", QuickGELU()),
+            ("c_proj", nn.Linear((self.kernel_size ** 2) * 4, (self.kernel_size ** 2) * 2)),
+            ('dropout', nn.Dropout(config.resid_pdrop)),
+        ]))
+        self.ln = nn.LayerNorm((self.kernel_size ** 2) * 2)
+        self.loss = torch.nn.BCEWithLogitsLoss()
+
+    def forward(self):
+        neighbor_activations = self.get_neighbor_activations() * self.connectome
+        neighbor_activations_over_threshold = (neighbor_activations > self.activation_threshold).to(self.neuron_weights.dtype)
+        x = torch.cat((neighbor_activations_over_threshold, self.neuron_weights), dim=-1)
+        x = self.ln(self.mlp(x) + x)
+        self.step()
+        output, neuron_weights = x.chunk(2, dim=-1)
+        self.neuron_weights = neuron_weights.detach()
+
+        neighbor_activations = self.get_neighbor_activations() * self.connectome
+        target = (neighbor_activations > self.activation_threshold).to(self.neuron_weights.dtype)
+        loss = self.loss(output, target)
+
+        connectome_delta = 0.5 - (target - output).detach().abs()
+        self.connectome = self.connectome + connectome_delta * 0.1
+        return loss
+
+    @torch.no_grad()
+    def step(self) -> None:
+        self.decay_activations()
+        self.decay_integrations()
+
+        neighbor_activations = self.get_neighbor_activations() * (self.connectome > 0)
         neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
 
         # Sum neighboring activations. This value is between 0 and kernel_size ** 2 - 1
