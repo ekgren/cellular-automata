@@ -150,7 +150,7 @@ class NeuronalLearningCA(nn.Module):
         target = (neighbor_activations > self.activation_threshold).to(self.neuron_weights.dtype)
         loss = self.loss(output, target)
 
-        connectome_delta = 0.5 - (target - output).detach().abs()
+        connectome_delta = 0.5 - (target - torch.sigmoid(output)).detach().abs()
         self.connectome = self.connectome + connectome_delta * 0.1
         return loss
 
