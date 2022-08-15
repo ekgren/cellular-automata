@@ -123,7 +123,7 @@ class NeuronalLearningCA(nn.Module):
         connectome_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
         self.connectome_init = (torch.rand(connectome_shape, device=self.device) > config.connectome_init_p)
         self.connectome = torch.randn(connectome_shape, device=self.device)
-        self.connectome[self.connectome_init] = -1.
+        self.connectome[self.connectome_init] = -100.
 
         neuron_weights_shape = (1, 1, config.board_size, config.board_size, self.kernel_size ** 2)
         self.neuron_weights = torch.randn(neuron_weights_shape, requires_grad=False, device=self.device)
@@ -160,7 +160,7 @@ class NeuronalLearningCA(nn.Module):
         self.decay_activations()
         self.decay_integrations()
 
-        neighbor_activations = self.get_neighbor_activations() * (self.connectome > 0)
+        neighbor_activations = self.get_neighbor_activations() * (self.connectome > 0) * self.connectome
         neighbor_activations_over_threshold = neighbor_activations > self.activation_threshold
 
         # Sum neighboring activations. This value is between 0 and kernel_size ** 2 - 1
